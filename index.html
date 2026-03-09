@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
 
 <head>
@@ -68,14 +69,13 @@ font-weight:bold;
 
 <h2>Akerlof Market for Lemons Simulation</h2>
 
-<p>Enter car quality Q between 0 and 100 (do not including 0 and 100)</p>
-  
-<p>Buyer Price Offer = 1.5x Ave. Quantity</p>
-  
-<p>Instruction: Please submit one value from 0 to 100 in the box and press "Submit Q" (Do not press any other bottom)</p>
+<p>Enter car quality Q between 0 and 100 (do not include 0 or 100)</p>
 
+<p>Buyer Price Offer = 1.5 × Average Quality</p>
 
-<input id="qualityInput" type="number" min="0" max="100">
+<p>Submit ONE value and do not press other buttons</p>
+
+<input id="qualityInput" type="number" min="1" max="99">
 
 <button onclick="addSeller()">Submit Q</button>
 
@@ -106,47 +106,80 @@ font-weight:bold;
 
 </div>
 
-<script>
+<!-- FIREBASE SCRIPT -->
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBuSSMZ7EBvGUVLDrs_jjEee4wXG1mKtB8",
+  authDomain: "lemons-market.firebaseapp.com",
+  databaseURL: "https://lemons-market-default-rtdb.firebaseio.com",
+  projectId: "lemons-market",
+  storageBucket: "lemons-market.firebasestorage.app",
+  messagingSenderId: "650840851193",
+  appId: "1:650840851193:web:f695781c04a2896687d828",
+  measurementId: "G-JHPVZ8LX84"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+const sellersRef = ref(db,"sellers");
 
 let sellers=[]
 let original=[]
 let round=0
 let lastPrice=null
 
-function addSeller(){
+window.addSeller=function(){
 
-let q=Number(document.getElementById("qualityInput").value)
+let q = Number(document.getElementById("qualityInput").value)
 
-if(q>=0 && q<=100){
+if(q>0 && q<100){
+
+push(sellersRef,q)
+
+}
+
+}
+
+onValue(sellersRef,(snapshot)=>{
+
+sellers=[]
+original=[]
+
+snapshot.forEach(child=>{
+
+let q=child.val()
 
 sellers.push(q)
 original.push(q)
 
-document.getElementById("sellerCount").innerHTML=sellers.length+" sellers"
+})
+
+document.getElementById("sellerCount").innerHTML=
+sellers.length+" sellers"
 
 updatePlot()
 
-}
+})
 
-}
-
-function average(arr){
-return arr.reduce((a,b)=>a+b,0)/arr.length
-}
-
-function nextRound(){
+window.nextRound=function(){
 
 if(sellers.length==0) return
 
 round++
 
-let avgQ=average(sellers)
+let avgQ = sellers.reduce((a,b)=>a+b,0)/sellers.length
 
-let price=1.5*avgQ
+let price = 1.5*avgQ
 
 lastPrice=price
 
-document.getElementById("priceDisplay").innerHTML =
+document.getElementById("priceDisplay").innerHTML=
 "Buyer Price Offer: "+price.toFixed(2)
 
 let table=document.getElementById("resultsTable")
@@ -162,8 +195,26 @@ sellers=sellers.filter(q=>q<price)
 
 updatePlot()
 
-document.getElementById("sellerCount").innerHTML =
-sellers.length+" sellers remaining"
+}
+
+window.resetMarket=function(){
+
+remove(sellersRef)
+
+round=0
+lastPrice=null
+
+document.getElementById("resultsTable").innerHTML=
+`
+<tr>
+<th>Round</th>
+<th># Sellers</th>
+<th>Average Quality</th>
+<th>Buyer Price Offer</th>
+</tr>
+`
+
+document.getElementById("priceDisplay").innerHTML=""
 
 }
 
@@ -174,13 +225,7 @@ x:original,
 type:'histogram',
 name:'Original Market',
 opacity:0.35,
-
-xbins:{
-start:0,
-end:100.0001,
-size:10
-},
-
+xbins:{start:0,end:100.0001,size:10},
 marker:{color:'gray'}
 }
 
@@ -188,13 +233,7 @@ let remainingTrace={
 x:sellers,
 type:'histogram',
 name:'Remaining Sellers',
-
-xbins:{
-start:0,
-end:100.0001,
-size:10
-},
-
+xbins:{start:0,end:100.0001,size:10},
 marker:{color:'#2c7be5'}
 }
 
@@ -210,11 +249,7 @@ y0:0,
 y1:1,
 xref:'x',
 yref:'paper',
-line:{
-color:'red',
-width:3,
-dash:'dash'
-}
+line:{color:'red',width:3,dash:'dash'}
 })
 
 shapes.push({
@@ -232,111 +267,19 @@ line:{width:0}
 }
 
 let layout={
-
 title:"Adverse Selection in the Lemons Market",
-
 barmode:'overlay',
-
-xaxis:{
-title:"Quality (Q)",
-range:[0,100],
-dtick:10
-},
-
-yaxis:{
-title:"Number of Sellers"
-},
-
+xaxis:{title:"Quality (Q)",range:[0,100],dtick:10},
+yaxis:{title:"Number of Sellers"},
 shapes:shapes
-
 }
 
 Plotly.newPlot('plot',[originalTrace,remainingTrace],layout)
 
 }
 
-function resetMarket(){
-
-sellers=[]
-original=[]
-round=0
-lastPrice=null
-
-document.getElementById("sellerCount").innerHTML="0 sellers"
-
-document.getElementById("priceDisplay").innerHTML=""
-
-document.getElementById("resultsTable").innerHTML=
-`
-<tr>
-<th>Round</th>
-<th># Sellers</th>
-<th>Average Quality</th>
-<th>Buyer Price Offer</th>
-</tr>
-`
-
-Plotly.newPlot('plot',[{x:[],type:'histogram'}])
-
-}
-
 </script>
 
-  <script type="module">
-
-// Import Firebase modules
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
-import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
-
-// Your Firebase configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyBuSSMZ7EBvGUVLDrs_jjEee4wXG1mKtB8",
-  authDomain: "lemons-market.firebaseapp.com",
-  databaseURL: "https://lemons-market-default-rtdb.firebaseio.com",
-  projectId: "lemons-market",
-  storageBucket: "lemons-market.firebasestorage.app",
-  messagingSenderId: "650840851193",
-  appId: "1:650840851193:web:f695781c04a2896687d828",
-  measurementId: "G-JHPVZ8LX84"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-
-// Reference to sellers in database
-const sellersRef = ref(db, "sellers");
-
-// Function students use to submit Q
-window.submitQuality = function(){
-
-  let q = Number(document.getElementById("qualityInput").value);
-
-  if(q >= 0 && q <= 100){
-
-    push(sellersRef, q);
-
-  }
-
-}
-
-// Listen for updates from Firebase
-onValue(sellersRef, (snapshot) => {
-
-  let sellers = [];
-
-  snapshot.forEach((child) => {
-    sellers.push(child.val());
-  });
-
-  console.log("Current sellers:", sellers);
-
-  // Here you will update your histogram
-  updatePlot(sellers);
-
-});
-
-</script>
 </body>
 
 </html>
