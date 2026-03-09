@@ -1,0 +1,287 @@
+<html>
+
+<head>
+
+<title>Lemons Market Simulation</title>
+
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+<style>
+
+body{
+font-family:Arial;
+background:#f4f6f8;
+text-align:center;
+}
+
+.container{
+width:900px;
+margin:auto;
+background:white;
+padding:30px;
+border-radius:10px;
+box-shadow:0px 4px 12px rgba(0,0,0,0.1);
+}
+
+input{
+padding:8px;
+font-size:18px;
+width:120px;
+}
+
+button{
+padding:10px 18px;
+font-size:16px;
+margin:10px;
+cursor:pointer;
+}
+
+table{
+margin-top:20px;
+border-collapse:collapse;
+width:100%;
+}
+
+th,td{
+border:1px solid #ddd;
+padding:10px;
+}
+
+th{
+background:#2c7be5;
+color:white;
+}
+
+.price{
+font-size:20px;
+margin-top:10px;
+font-weight:bold;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>Akerlof Market for Lemons Simulation</h2>
+
+<p>Enter car quality Q between 0 and 100 (do not including 0 and 100)</p>
+  
+<p>Buyer Price Offer = 1.5x Ave. Quantity</p>
+  
+<p>Instruction: Please submit one value from 0 to 100 in the box and press "Submit Q" (Do not press any other bottom)</p>
+
+
+<input id="qualityInput" type="number" min="0" max="100">
+
+<button onclick="addSeller()">Submit Q</button>
+
+<button onclick="nextRound()">Next Round</button>
+
+<button onclick="resetMarket()">Reset Market</button>
+
+<h3>Current Sellers</h3>
+
+<div id="sellerCount">0 sellers</div>
+
+<div class="price" id="priceDisplay"></div>
+
+<div id="plot" style="width:100%;height:450px;"></div>
+
+<h3>Market History</h3>
+
+<table id="resultsTable">
+
+<tr>
+<th>Round</th>
+<th># Sellers</th>
+<th>Average Quality</th>
+<th>Buyer Price Offer</th>
+</tr>
+
+</table>
+
+</div>
+
+<script>
+
+let sellers=[]
+let original=[]
+let round=0
+let lastPrice=null
+
+function addSeller(){
+
+let q=Number(document.getElementById("qualityInput").value)
+
+if(q>=0 && q<=100){
+
+sellers.push(q)
+original.push(q)
+
+document.getElementById("sellerCount").innerHTML=sellers.length+" sellers"
+
+updatePlot()
+
+}
+
+}
+
+function average(arr){
+return arr.reduce((a,b)=>a+b,0)/arr.length
+}
+
+function nextRound(){
+
+if(sellers.length==0) return
+
+round++
+
+let avgQ=average(sellers)
+
+let price=1.5*avgQ
+
+lastPrice=price
+
+document.getElementById("priceDisplay").innerHTML =
+"Buyer Price Offer: "+price.toFixed(2)
+
+let table=document.getElementById("resultsTable")
+
+let row=table.insertRow()
+
+row.insertCell(0).innerHTML=round
+row.insertCell(1).innerHTML=sellers.length
+row.insertCell(2).innerHTML=avgQ.toFixed(2)
+row.insertCell(3).innerHTML=price.toFixed(2)
+
+sellers=sellers.filter(q=>q<price)
+
+updatePlot()
+
+document.getElementById("sellerCount").innerHTML =
+sellers.length+" sellers remaining"
+
+}
+
+function updatePlot(){
+
+let originalTrace={
+x:original,
+type:'histogram',
+name:'Original Market',
+opacity:0.35,
+
+xbins:{
+start:0,
+end:100.0001,
+size:10
+},
+
+marker:{color:'gray'}
+}
+
+let remainingTrace={
+x:sellers,
+type:'histogram',
+name:'Remaining Sellers',
+
+xbins:{
+start:0,
+end:100.0001,
+size:10
+},
+
+marker:{color:'#2c7be5'}
+}
+
+let shapes=[]
+
+if(lastPrice){
+
+shapes.push({
+type:'line',
+x0:lastPrice,
+x1:lastPrice,
+y0:0,
+y1:1,
+xref:'x',
+yref:'paper',
+line:{
+color:'red',
+width:3,
+dash:'dash'
+}
+})
+
+shapes.push({
+type:'rect',
+x0:lastPrice,
+x1:100,
+y0:0,
+y1:1,
+xref:'x',
+yref:'paper',
+fillcolor:'rgba(255,0,0,0.15)',
+line:{width:0}
+})
+
+}
+
+let layout={
+
+title:"Adverse Selection in the Lemons Market",
+
+barmode:'overlay',
+
+xaxis:{
+title:"Quality (Q)",
+range:[0,100],
+dtick:10
+},
+
+yaxis:{
+title:"Number of Sellers"
+},
+
+shapes:shapes
+
+}
+
+Plotly.newPlot('plot',[originalTrace,remainingTrace],layout)
+
+}
+
+function resetMarket(){
+
+sellers=[]
+original=[]
+round=0
+lastPrice=null
+
+document.getElementById("sellerCount").innerHTML="0 sellers"
+
+document.getElementById("priceDisplay").innerHTML=""
+
+document.getElementById("resultsTable").innerHTML=
+`
+<tr>
+<th>Round</th>
+<th># Sellers</th>
+<th>Average Quality</th>
+<th>Buyer Price Offer</th>
+</tr>
+`
+
+Plotly.newPlot('plot',[{x:[],type:'histogram'}])
+
+}
+
+</script>
+
+</body>
+
+</html>
