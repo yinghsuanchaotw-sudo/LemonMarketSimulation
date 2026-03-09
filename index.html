@@ -282,6 +282,61 @@ Plotly.newPlot('plot',[{x:[],type:'histogram'}])
 
 </script>
 
+  <script type="module">
+
+// Import Firebase modules
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
+
+// Your Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyBuSSMZ7EBvGUVLDrs_jjEee4wXG1mKtB8",
+  authDomain: "lemons-market.firebaseapp.com",
+  databaseURL: "https://lemons-market-default-rtdb.firebaseio.com",
+  projectId: "lemons-market",
+  storageBucket: "lemons-market.firebasestorage.app",
+  messagingSenderId: "650840851193",
+  appId: "1:650840851193:web:f695781c04a2896687d828",
+  measurementId: "G-JHPVZ8LX84"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// Reference to sellers in database
+const sellersRef = ref(db, "sellers");
+
+// Function students use to submit Q
+window.submitQuality = function(){
+
+  let q = Number(document.getElementById("qualityInput").value);
+
+  if(q >= 0 && q <= 100){
+
+    push(sellersRef, q);
+
+  }
+
+}
+
+// Listen for updates from Firebase
+onValue(sellersRef, (snapshot) => {
+
+  let sellers = [];
+
+  snapshot.forEach((child) => {
+    sellers.push(child.val());
+  });
+
+  console.log("Current sellers:", sellers);
+
+  // Here you will update your histogram
+  updatePlot(sellers);
+
+});
+
+</script>
 </body>
 
 </html>
